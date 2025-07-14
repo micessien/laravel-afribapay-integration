@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->text('token');
             $table->boolean('active')->default(true);
+            $table->json('response')->nullable();
             $table->timestamp('expires_at')->nullable();
             $table->timestamps();
         });

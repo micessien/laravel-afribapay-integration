@@ -62,6 +62,7 @@ class PaymentController extends Controller
                 $dateWith20Hours = Carbon::now()->addHours(20);
                 $newAccessToken = new AfribapayAccessToken;
                 $newAccessToken->token =  $tokenData->data->access_token;
+                $newAccessToken->response =  json_encode($tokenData);
                 $newAccessToken->expires_at =  $dateWith20Hours;
                 $newAccessToken->save();
                 // Return Access Token
@@ -79,6 +80,7 @@ class PaymentController extends Controller
         $dateWith20Hours = Carbon::now()->addHours(20);
         $newAccessToken = new AfribapayAccessToken;
         $newAccessToken->token =  $tokenData->data->access_token;
+        $newAccessToken->response =  json_encode($tokenData);
         $newAccessToken->expires_at =  $dateWith20Hours;
         $newAccessToken->save();
         // Return Access Token

@@ -24,6 +24,7 @@ class AfribapayAccessToken extends Model
     protected $fillable = [
         'token',
         'active',
+        'response',
     ];
     
 }
