@@ -35,8 +35,52 @@ class PaymentController extends Controller
 
         // Get Access Token
         $token = $this->get_accesstoken();
-        
-        dd($token);
+        // Make Payment
+        $formData = [
+            "country" => $request->country,
+            "operator" => $request->operator,
+            "phone_number" => $request->phone,
+            "amount" => $request->amount,
+            "currency" => "XOF",
+            "order_id" => "order-1726027234",
+            "merchant_key" => env('AFRIBAPAY_API_MARCHANDKEY'),
+            "reference_id" => "ref-cievent-cnjci",
+            "lang" => "fr",
+            "return_url" => "http://localhost:8000",
+            "cancel_url" => "http://localhost:8000/cancel",
+            // "notify_url" => "https://localhost:8000/notification_ipn_webhook",
+        ];
+        $pay = json_decode($this->initialize_payment($token, $formData));
+        dd($pay);
+    }
+
+    public function initialize_payment($token, $formData)
+    {
+        $url = env("AFRIBAPAY_API_URL")."/v1/pay/payin";
+
+        $fields_string = json_encode($formData);
+        // dd($fields_string);
+        $curl = curl_init();
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => '',
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => 'POST',
+            CURLOPT_POSTFIELDS => $fields_string,
+            CURLOPT_HTTPHEADER => array(
+                'Content-Type: application/json',
+                'Authorization: Bearer '.$token // Add the Bearer token here
+            ),
+        ));
+
+        $response = curl_exec($curl);
+
+        curl_close($curl);
+        return $response;
     }
 
     /**
