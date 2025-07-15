@@ -14,6 +14,10 @@
 </head>
 <body>
     <h1>Pay Now</h1>
+    {{-- Show error --}}
+    @if (session()->has('error'))
+        <p class="invalid-feedback">{{ session()->get('error') }}</p>
+    @endif
     <form action="{{ route('pay.make') }}" method="post">
         @csrf
         <select name="country" required>

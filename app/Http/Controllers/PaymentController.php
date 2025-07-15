@@ -3,8 +3,9 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Carbon\Carbon;
 use App\Models\AfribapayAccessToken;
+use App\Models\Payment;
+use Carbon\Carbon;
 
 class PaymentController extends Controller
 {
@@ -36,13 +37,14 @@ class PaymentController extends Controller
         // Get Access Token
         $token = $this->get_accesstoken();
         // Make Payment
+        $secureRandom = random_int(1000000000, 9999999999); // 10-digit number
         $formData = [
             "country" => $request->country,
             "operator" => $request->operator,
             "phone_number" => $request->phone,
             "amount" => $request->amount,
             "currency" => "XOF",
-            "order_id" => "order-1726027234",
+            "order_id" => "order-".$secureRandom,
             "merchant_key" => env('AFRIBAPAY_API_MARCHANDKEY'),
             "reference_id" => "ref-cievent-cnjci",
             "lang" => "fr",
@@ -51,7 +53,37 @@ class PaymentController extends Controller
             // "notify_url" => "https://localhost:8000/notification_ipn_webhook",
         ];
         $pay = json_decode($this->initialize_payment($token, $formData));
-        dd($pay);
+        // dd($pay);
+        if ($pay) {
+            // When request is successful
+            if (isset($pay->data->status)) {
+                // Save Payment
+                $payment = new Payment;
+                $payment->transaction_id = $pay->data->transaction_id;
+                $payment->phone = $pay->data->phone_number;
+                $payment->status = $pay->data->status;
+                $payment->response = json_encode($pay);
+                $payment->save();
+
+                // Return message when it has failed
+                if ($pay->data->status === "FAILED") {
+                    return back()->withError('Transaction has failed');
+                }
+
+                // Continue When is successful
+                dd($pay);
+            }else {
+                // When request have an error
+                if (property_exists($pay, 'error')) {
+                    $errorMessage = $pay->error->message ?? 'Somthing went wrong';
+                    return back()->withError($errorMessage);
+                }
+                dd($pay);
+                return back()->withError('Somthing went wrong');
+            }
+        }else{
+            return back()->withError('Somthing went wrong');
+        }
     }
 
     public function initialize_payment($token, $formData)
