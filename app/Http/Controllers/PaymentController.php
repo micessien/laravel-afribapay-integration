@@ -29,12 +29,11 @@ class PaymentController extends Controller
     {
         $data = null;
         $error = null;
-        // Get Access Token & transaction id
-        $token = $this->get_accesstoken();
+        // Get transaction id
         $transaction_id = $request->transaction_id ?? null;
         
         // Verify payment
-        $response = $this->payment_verification($token, $transaction_id);
+        $response = $this->payment_verification($transaction_id);
         if (isset($response->data->status)) {
             $payment = Payment::where('transaction_id', $transaction_id)->first();
             if ($payment) {
@@ -71,8 +70,6 @@ class PaymentController extends Controller
             'amount' => 'required|numeric|min:100',
         ]);
 
-        // Get Access Token
-        $token = $this->get_accesstoken();
         // Make Payment
         $secureRandom = random_int(1000000000, 9999999999); // 10-digit number
         $formData = [
@@ -89,8 +86,7 @@ class PaymentController extends Controller
             "cancel_url" => "http://localhost:8000/cancel",
             // "notify_url" => "https://localhost:8000/notification_ipn_webhook",
         ];
-        $pay = json_decode($this->initialize_payment($token, $formData));
-        // dd($pay);
+        $pay = $this->initialize_payment($formData);
         if ($pay) {
             // When request is successful
             if (isset($pay->data->status)) {
@@ -123,9 +119,11 @@ class PaymentController extends Controller
         }
     }
 
-    public function initialize_payment($token, $formData)
+    public function initialize_payment($formData)
     {
         $url = env("AFRIBAPAY_API_URL")."/v1/pay/payin";
+        // Get Access Token
+        $token = $this->get_accesstoken();
 
         $fields_string = json_encode($formData);
         // dd($fields_string);
@@ -149,7 +147,7 @@ class PaymentController extends Controller
         $response = curl_exec($curl);
 
         curl_close($curl);
-        return $response;
+        return json_decode($response);
     }
 
     /**
@@ -236,24 +234,26 @@ class PaymentController extends Controller
      *
      * @return \Illuminate\Response $response
      */
-    public function payment_verification($token, $transaction_id)
+    public function payment_verification($transaction_id)
     {
         $url = env("AFRIBAPAY_API_URL")."/v1/status?transaction_id=".$transaction_id;
+        // Get Access Token
+        $token = $this->get_accesstoken();
 
         $curl = curl_init();
         curl_setopt_array($curl, array(
-        CURLOPT_URL => $url,
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_ENCODING => '',
-        CURLOPT_MAXREDIRS => 10,
-        CURLOPT_TIMEOUT => 0,
-        CURLOPT_FOLLOWLOCATION => true,
-        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-        CURLOPT_CUSTOMREQUEST => 'GET',
-        CURLOPT_HTTPHEADER => array(
-            'Authorization: Bearer '.$token,
-            'Content-Type: application/json'
-        ),
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => '',
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => 'GET',
+            CURLOPT_HTTPHEADER => array(
+                'Authorization: Bearer '.$token,
+                'Content-Type: application/json'
+            ),
         ));
 
         $response = curl_exec($curl);
