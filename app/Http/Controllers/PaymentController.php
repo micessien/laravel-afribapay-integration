@@ -104,7 +104,7 @@ class PaymentController extends Controller
                 }
 
                 // Continue When is successful
-                dd($pay);
+                return redirect()->route('pay.callback', ['transaction_id' => $pay->data->transaction_id]);
             }else {
                 // When request have an error
                 if (property_exists($pay, 'error')) {
