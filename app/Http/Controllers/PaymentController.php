@@ -80,7 +80,7 @@ class PaymentController extends Controller
             "currency" => "XOF",
             "order_id" => "order-".$secureRandom,
             "merchant_key" => env('AFRIBAPAY_API_MARCHANDKEY'),
-            "reference_id" => "ref-cievent-cnjci",
+            "reference_id" => "ref-miky-dev",
             "lang" => "fr",
             "return_url" => "http://localhost:8000",
             "cancel_url" => "http://localhost:8000/cancel",
