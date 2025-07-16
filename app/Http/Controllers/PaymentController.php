@@ -151,6 +151,39 @@ class PaymentController extends Controller
     }
 
     /**
+     * Payment verification
+     *
+     * @return \Illuminate\Response $response
+     */
+    public function payment_verification($transaction_id)
+    {
+        $url = env("AFRIBAPAY_API_URL")."/v1/status?transaction_id=".$transaction_id;
+        // Get Access Token
+        $token = $this->get_accesstoken();
+
+        $curl = curl_init();
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => '',
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => 'GET',
+            CURLOPT_HTTPHEADER => array(
+                'Authorization: Bearer '.$token,
+                'Content-Type: application/json'
+            ),
+        ));
+
+        $response = curl_exec($curl);
+
+        curl_close($curl);
+        return json_decode($response);
+    }
+
+    /**
      * Get the Access Token
      *
      * @param  \Illuminate\Http\Request  $request
@@ -220,39 +253,6 @@ class PaymentController extends Controller
             CURLOPT_HTTPHEADER => array(
                 'Content-Type: application/json',
                 'Authorization: Basic '.base64_encode(env('AFRIBAPAY_API_USER').':'.env('AFRIBAPAY_API_KEY')) //  Api_user and Api_key from your merchand account
-            ),
-        ));
-
-        $response = curl_exec($curl);
-
-        curl_close($curl);
-        return json_decode($response);
-    }
-
-    /**
-     * Payment verification
-     *
-     * @return \Illuminate\Response $response
-     */
-    public function payment_verification($transaction_id)
-    {
-        $url = env("AFRIBAPAY_API_URL")."/v1/status?transaction_id=".$transaction_id;
-        // Get Access Token
-        $token = $this->get_accesstoken();
-
-        $curl = curl_init();
-        curl_setopt_array($curl, array(
-            CURLOPT_URL => $url,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_ENCODING => '',
-            CURLOPT_MAXREDIRS => 10,
-            CURLOPT_TIMEOUT => 0,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-            CURLOPT_CUSTOMREQUEST => 'GET',
-            CURLOPT_HTTPHEADER => array(
-                'Authorization: Bearer '.$token,
-                'Content-Type: application/json'
             ),
         ));
 
