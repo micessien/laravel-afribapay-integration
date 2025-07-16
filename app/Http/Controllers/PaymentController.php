@@ -20,6 +20,43 @@ class PaymentController extends Controller
     }
 
     /**
+     * Payment callback
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function paymentCallback(Request $request)
+    {
+        $data = null;
+        $error = null;
+        // Get Access Token & transaction id
+        $token = $this->get_accesstoken();
+        $transaction_id = $request->transaction_id ?? null;
+        
+        // Verify payment
+        $response = $this->payment_verification($token, $transaction_id);
+        if (isset($response->data->status)) {
+            $payment = Payment::where('transaction_id', $transaction_id)->first();
+            if ($payment) {
+                $payment->status = $response->data->status;
+                $payment->save();
+            }
+            // Set data to be return
+            $data = $response->data;
+        }else{
+            // Set error message to be return
+            $error = 'Somthing went wrong';
+            // When request have an error
+            if (property_exists($response, 'error')) {
+                $errorMessage = $response->error->message ?? 'Somthing went wrong';
+                $error = $errorMessage;
+            }
+        }
+        
+        return view('pay.callback', compact('data', 'error'));
+    }
+
+    /**
      * Make payment
      *
      * @param  \Illuminate\Http\Request  $request
@@ -193,4 +230,36 @@ class PaymentController extends Controller
         curl_close($curl);
         return json_decode($response);
     }
+
+    /**
+     * Payment verification
+     *
+     * @return \Illuminate\Response $response
+     */
+    public function payment_verification($token, $transaction_id)
+    {
+        $url = env("AFRIBAPAY_API_URL")."/v1/status?transaction_id=".$transaction_id;
+
+        $curl = curl_init();
+        curl_setopt_array($curl, array(
+        CURLOPT_URL => $url,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_ENCODING => '',
+        CURLOPT_MAXREDIRS => 10,
+        CURLOPT_TIMEOUT => 0,
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+        CURLOPT_CUSTOMREQUEST => 'GET',
+        CURLOPT_HTTPHEADER => array(
+            'Authorization: Bearer '.$token,
+            'Content-Type: application/json'
+        ),
+        ));
+
+        $response = curl_exec($curl);
+
+        curl_close($curl);
+        return json_decode($response);
+    }
+
 }

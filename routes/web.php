@@ -20,3 +20,4 @@ Route::get('/', function () {
 
 Route::get('pay', [PaymentController::class, 'index'])->name('pay');
 Route::post('pay', [PaymentController::class, 'makePayment'])->name('pay.make');
+Route::get('pay/callback', [PaymentController::class, 'paymentCallback'])->name('pay.callback');
