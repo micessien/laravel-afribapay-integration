@@ -50,10 +50,10 @@ class PaymentController extends Controller
             $data = $response->data;
         }else{
             // Set error message to be return
-            $error = 'Somthing went wrong';
+            $error = 'Something went wrong';
             // When request have an error
             if (property_exists($response, 'error')) {
-                $errorMessage = $response->error->message ?? 'Somthing went wrong';
+                $errorMessage = $response->error->message ?? 'Something went wrong';
                 $error = $errorMessage;
             }
         }
@@ -114,14 +114,14 @@ class PaymentController extends Controller
             }else {
                 // When request have an error
                 if (property_exists($pay, 'error')) {
-                    $errorMessage = $pay->error->message ?? 'Somthing went wrong';
+                    $errorMessage = $pay->error->message ?? 'Something went wrong';
                     return back()->withError($errorMessage);
                 }
                 dd($pay);
-                return back()->withError('Somthing went wrong');
+                return back()->withError('Something went wrong');
             }
         }else{
-            return back()->withError('Somthing went wrong');
+            return back()->withError('Something went wrong');
         }
     }
 }
