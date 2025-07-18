@@ -14,6 +14,14 @@ return [
     |
     */
 
+    // Setup Afribapay env
+    'afribapay' => [
+        'url' => env('AFRIBAPAY_API_URL'),
+        'user' => env('AFRIBAPAY_API_USER'),
+        'key' => env('AFRIBAPAY_API_KEY'),
+        'marchand_key' => env('AFRIBAPAY_API_MARCHANDKEY'),
+    ],
+
     'mailgun' => [
         'domain' => env('MAILGUN_DOMAIN'),
         'secret' => env('MAILGUN_SECRET'),

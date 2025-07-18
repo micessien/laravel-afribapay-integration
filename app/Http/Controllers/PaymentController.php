@@ -6,9 +6,17 @@ use Illuminate\Http\Request;
 use App\Models\AfribapayAccessToken;
 use App\Models\Payment;
 use Carbon\Carbon;
+use App\Services\AfribapayService;
 
 class PaymentController extends Controller
 {
+    protected $afribapay;
+
+    public function __construct(AfribapayService $afribapay)
+    {
+        $this->afribapay = $afribapay;
+    }
+
     /**
      * Display a index view.
      *
@@ -33,7 +41,7 @@ class PaymentController extends Controller
         $transaction_id = $request->transaction_id ?? null;
         
         // Verify payment
-        $response = $this->payment_verification($transaction_id);
+        $response = $this->afribapay->paymentVerification($transaction_id);
         if (isset($response->data->status)) {
             $payment = Payment::where('transaction_id', $transaction_id)->first();
             if ($payment) {
@@ -86,7 +94,7 @@ class PaymentController extends Controller
             "cancel_url" => "http://localhost:8000/cancel",
             // "notify_url" => "https://localhost:8000/notification_ipn_webhook",
         ];
-        $pay = $this->initialize_payment($formData);
+        $pay = $this->afribapay->initializePayment($formData);
         if ($pay) {
             // When request is successful
             if (isset($pay->data->status)) {
@@ -118,148 +126,4 @@ class PaymentController extends Controller
             return back()->withError('Somthing went wrong');
         }
     }
-
-    public function initialize_payment($formData)
-    {
-        $url = env("AFRIBAPAY_API_URL")."/v1/pay/payin";
-        // Get Access Token
-        $token = $this->get_accesstoken();
-
-        $fields_string = json_encode($formData);
-        // dd($fields_string);
-        $curl = curl_init();
-        curl_setopt_array($curl, array(
-            CURLOPT_URL => $url,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_ENCODING => '',
-            CURLOPT_MAXREDIRS => 10,
-            CURLOPT_TIMEOUT => 0,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-            CURLOPT_CUSTOMREQUEST => 'POST',
-            CURLOPT_POSTFIELDS => $fields_string,
-            CURLOPT_HTTPHEADER => array(
-                'Content-Type: application/json',
-                'Authorization: Bearer '.$token // Add the Bearer token here
-            ),
-        ));
-
-        $response = curl_exec($curl);
-
-        curl_close($curl);
-        return json_decode($response);
-    }
-
-    /**
-     * Payment verification
-     *
-     * @return \Illuminate\Response $response
-     */
-    public function payment_verification($transaction_id)
-    {
-        $url = env("AFRIBAPAY_API_URL")."/v1/status?transaction_id=".$transaction_id;
-        // Get Access Token
-        $token = $this->get_accesstoken();
-
-        $curl = curl_init();
-        curl_setopt_array($curl, array(
-            CURLOPT_URL => $url,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_ENCODING => '',
-            CURLOPT_MAXREDIRS => 10,
-            CURLOPT_TIMEOUT => 0,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-            CURLOPT_CUSTOMREQUEST => 'GET',
-            CURLOPT_HTTPHEADER => array(
-                'Authorization: Bearer '.$token,
-                'Content-Type: application/json'
-            ),
-        ));
-
-        $response = curl_exec($curl);
-
-        curl_close($curl);
-        return json_decode($response);
-    }
-
-    /**
-     * Get the Access Token
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response $token
-     */
-    public function get_accesstoken()
-    {
-        $AccessTokenData = AfribapayAccessToken::where('active', true)->first();
-        if ($AccessTokenData) {
-            $AccessTokenEnd = Carbon::parse($AccessTokenData->expires_at);
-            // Access Token has expired
-            if ($AccessTokenEnd->isPast()) {
-                // Generate New Access Token
-                $tokenData = $this->generate_accesstoken();
-                // Make actual Access Token Inactive
-                $AccessTokenData->active = false;
-                $AccessTokenData->save();
-                
-                // Create New token and save
-                $dateWith20Hours = Carbon::now()->addHours(20);
-                $newAccessToken = new AfribapayAccessToken;
-                $newAccessToken->token =  $tokenData->data->access_token;
-                $newAccessToken->response =  json_encode($tokenData);
-                $newAccessToken->expires_at =  $dateWith20Hours;
-                $newAccessToken->save();
-                // Return Access Token
-                return $tokenData->data->access_token;
-            }
-
-            // Access Token has not expired
-            $token = $AccessTokenData->token;
-            return $token;
-        }
-
-        // Generate New Access Token
-        $tokenData = $this->generate_accesstoken();
-        // Create New token and save
-        $dateWith20Hours = Carbon::now()->addHours(20);
-        $newAccessToken = new AfribapayAccessToken;
-        $newAccessToken->token =  $tokenData->data->access_token;
-        $newAccessToken->response =  json_encode($tokenData);
-        $newAccessToken->expires_at =  $dateWith20Hours;
-        $newAccessToken->save();
-        // Return Access Token
-        return $tokenData->data->access_token;
-    }
-    
-    /**
-     * Generate the Access Token from API
-     *
-     * @return \Illuminate\Response $response
-     */
-    public function generate_accesstoken()
-    {
-        $url = env("AFRIBAPAY_API_URL")."/v1/token";
-
-        $curl = curl_init();
-        curl_setopt_array($curl, array(
-            CURLOPT_URL => $url,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_ENCODING => '',
-            CURLOPT_MAXREDIRS => 10,
-            CURLOPT_TIMEOUT => 0,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-            CURLOPT_CUSTOMREQUEST => 'POST',
-            CURLOPT_HTTPHEADER => array(
-                'Content-Type: application/json',
-                'Authorization: Basic '.base64_encode(env('AFRIBAPAY_API_USER').':'.env('AFRIBAPAY_API_KEY')) //  Api_user and Api_key from your merchand account
-            ),
-        ));
-
-        $response = curl_exec($curl);
-
-        curl_close($curl);
-        return json_decode($response);
-    }
-
 }
