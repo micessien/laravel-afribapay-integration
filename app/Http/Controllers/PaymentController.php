@@ -3,9 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\AfribapayAccessToken;
 use App\Models\Payment;
-use Carbon\Carbon;
 use App\Services\AfribapayService;
 
 class PaymentController extends Controller
