@@ -27,7 +27,7 @@ After installing dependencies, follow the steps below
 ```sh
 php artisan key:generate
 ```
-> Don't forhet to set up APP URL and DB Config inside your .env file
+> Don't forget to set up APP URL and DB Config inside your .env file
 
 **Set up AfribaPay Config:**
 
