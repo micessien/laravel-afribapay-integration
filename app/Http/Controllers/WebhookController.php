@@ -1,0 +1,106 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use App\Models\Payment;
+
+class WebhookController extends Controller
+{   
+    /**
+     * Handle the incoming webhook notification.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    // Handle webhook notifications from AfribaPAY
+    // This method processes the webhook notification sent by AfribaPAY
+    // It verifies the signature, decodes the JSON payload, and updates the payment status accordingly
+    // It also logs the webhook data for record-keeping and debugging purposes
+    // The method returns a JSON response indicating the success or failure of the operation
+    // @throws \Exception
+    // @return \Illuminate\Http\JsonResponse
+    public function handle(Request $request)
+    {
+        try {
+            // Get all headers
+            // $allHeaders = $request->headers->all();
+            // Process webhook payload & Decode the JSON payload into a PHP associative array
+            $payload = $request->getContent();
+            $data = json_decode($payload, true);
+            // Check if the payload was successfully decoded
+            if ($data === null) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid JSON received.',
+                ], 400);
+            }
+            // START Signature Verification
+            // Retrieve AfribaPAY signature from headers
+            $afribaPaySignature = $request->header('HTTP_AFRIBAPAY_SIGN') ?? null;
+            // Sign the payload using the merchant key
+            $computedSignature = $this->afribapay_sign($payload, config("services.afribapay.key"));
+            // Compare the signature received with the computed one
+            if (!hash_equals($computedSignature, $afribaPaySignature)) {
+                // Signature mismatch, possibly indicating that the request did not originate from AfribaPAY
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid webhook.',
+                ], 403);
+            }
+
+            // END Signature Verification
+            // Extract important data from the decoded payload
+            $transactionId = $data['transaction_id'] ?? null;
+            $status = $data['status'] ?? null;
+            // Optional: Log the data for troubleshooting or record-keeping purposes
+            file_put_contents("webhook_log.txt", date('Y-m-d H:i:s') . " - Received webhook: " . json_encode($data) . PHP_EOL, FILE_APPEND);
+            // Process the payment status
+            if ($status === 'SUCCESS') {
+                // Handle successful payment
+                $payment = Payment::where('transaction_id', $transactionId)->first();
+                if ($payment) {
+                    $payment->status = 'SUCCESS';
+                    $payment->response = json_encode($data);
+                    $payment->save();
+                }
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Transaction successful.',
+                ], 200);
+            } elseif ($status === 'FAILED') {
+                // Handle failed payment logic
+                $payment = Payment::where('transaction_id', $transactionId)->first();
+                if ($payment) {
+                    $payment->status = 'FAILED';
+                    $payment->response = json_encode($data);
+                    $payment->save();
+                }
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Transaction failed.',
+                ], 200);
+            }else{
+                // Handle any unexpected statuses
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Unknown status.',
+                    'status' => $status,
+                ], 400);
+            }
+        } catch (\Throwable $th) {
+            //throw $th;
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while processing the webhook.',
+                'error' => $th->getMessage(),
+            ], 500);
+        }
+    }
+
+    // Afribapay signature verification function
+    public static function afribapay_sign($json, $api_key) {
+        $hash = hash_hmac('sha256', $json, $api_key);
+        return $hash;
+    }
+}

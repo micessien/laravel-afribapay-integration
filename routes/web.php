@@ -1,7 +1,8 @@
 <?php
 
-use App\Http\Controllers\PaymentController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\WebhookController;
 
 /*
 |--------------------------------------------------------------------------
@@ -21,3 +22,5 @@ Route::get('/', function () {
 Route::get('pay', [PaymentController::class, 'index'])->name('pay');
 Route::post('pay', [PaymentController::class, 'makePayment'])->name('pay.make');
 Route::get('pay/callback', [PaymentController::class, 'paymentCallback'])->name('pay.callback');
+
+Route::post('webhook/notify', [WebhookController::class, 'handle']);
