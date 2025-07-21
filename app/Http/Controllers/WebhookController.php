@@ -24,15 +24,12 @@ class WebhookController extends Controller
     // Handle webhook notifications from AfribaPAY
     // This method processes the webhook notification sent by AfribaPAY
     // It verifies the signature, decodes the JSON payload, and updates the payment status accordingly
-    // It also logs the webhook data for record-keeping and debugging purposes
     // The method returns a JSON response indicating the success or failure of the operation
     // @throws \Exception
     // @return \Illuminate\Http\JsonResponse
     public function handle(Request $request)
     {
         try {
-            // Get all headers
-            // $allHeaders = $request->headers->all();
             // Process webhook payload & Decode the JSON payload into a PHP associative array
             $payload = $request->getContent();
             $data = json_decode($payload, true);
@@ -45,7 +42,7 @@ class WebhookController extends Controller
             }
             // START Signature Verification
             // Retrieve AfribaPAY signature from headers
-            $afribaPaySignature = $request->header('HTTP_AFRIBAPAY_SIGN') ?? null;
+            $afribaPaySignature = $request->header('Afribapay-Sign') ?? null;
             // Sign the payload using the merchant key
             $computedSignature = $this->afribapay->afribapay_sign($payload, config("services.afribapay.key"));
             // Compare the signature received with the computed one
@@ -56,20 +53,17 @@ class WebhookController extends Controller
                     'message' => 'Invalid webhook.',
                 ], 403);
             }
-
             // END Signature Verification
+            
             // Extract important data from the decoded payload
             $transactionId = $data['transaction_id'] ?? null;
             $status = $data['status'] ?? null;
-            // Optional: Log the data for troubleshooting or record-keeping purposes
-            file_put_contents("webhook_log.txt", date('Y-m-d H:i:s') . " - Received webhook: " . json_encode($data) . PHP_EOL, FILE_APPEND);
             // Process the payment status
             if ($status === 'SUCCESS') {
                 // Handle successful payment
                 $payment = Payment::where('transaction_id', $transactionId)->first();
                 if ($payment) {
                     $payment->status = 'SUCCESS';
-                    $payment->response = json_encode($data);
                     $payment->save();
                 }
                 return response()->json([
@@ -81,7 +75,6 @@ class WebhookController extends Controller
                 $payment = Payment::where('transaction_id', $transactionId)->first();
                 if ($payment) {
                     $payment->status = 'FAILED';
-                    $payment->response = json_encode($data);
                     $payment->save();
                 }
                 return response()->json([

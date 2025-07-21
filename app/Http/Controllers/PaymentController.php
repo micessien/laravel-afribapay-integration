@@ -85,12 +85,12 @@ class PaymentController extends Controller
             "amount" => $request->amount,
             "currency" => "XOF",
             "order_id" => "order-".$secureRandom,
-            "merchant_key" => env('AFRIBAPAY_API_MARCHANDKEY'),
+            "merchant_key" => config('services.afribapay.marchand_key'),
             "reference_id" => "ref-miky-dev",
             "lang" => "fr",
             // "return_url" => "http://localhost:8000",
             // "cancel_url" => "http://localhost:8000/cancel",
-            "notify_url" => "http://localhost:8000/webhook/notify",
+            "notify_url" => config("app.url")."/webhook/notify",
         ];
         $pay = $this->afribapay->initializePayment($formData);
         if ($pay) {
