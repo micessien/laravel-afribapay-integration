@@ -148,8 +148,10 @@ class AfribapayService {
     /**
      * Signature verification: Create a hash of the payload using the key
      */
-    public function afribapay_sign($payload, $key)
+    public function afribapay_sign($payload)
     {
+        $key = config("services.afribapay.key");
+        // Create a hash of the payload using the key
         $signature = hash_hmac('sha256', $payload, $key);
         return $signature;
     }

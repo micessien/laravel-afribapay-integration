@@ -44,7 +44,7 @@ class WebhookController extends Controller
             // Retrieve AfribaPAY signature from headers
             $afribaPaySignature = $request->header('Afribapay-Sign') ?? null;
             // Sign the payload using the merchant key
-            $computedSignature = $this->afribapay->afribapay_sign($payload, config("services.afribapay.key"));
+            $computedSignature = $this->afribapay->afribapay_sign($payload);
             // Compare the signature received with the computed one
             if (!hash_equals($computedSignature, $afribaPaySignature)) {
                 // Signature mismatch, possibly indicating that the request did not originate from AfribaPAY
