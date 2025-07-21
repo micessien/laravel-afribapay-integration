@@ -144,4 +144,13 @@ class AfribapayService {
         curl_close($curl);
         return json_decode($response);
     }
+
+    /**
+     * Signature verification: Create a hash of the payload using the key
+     */
+    public function afribapay_sign($payload, $key)
+    {
+        $signature = hash_hmac('sha256', $payload, $key);
+        return $signature;
+    }
 }

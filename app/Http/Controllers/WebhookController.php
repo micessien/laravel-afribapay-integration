@@ -4,9 +4,17 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Payment;
+use App\Services\AfribapayService;
 
 class WebhookController extends Controller
 {   
+    protected $afribapay;
+
+    public function __construct(AfribapayService $afribapay)
+    {
+        $this->afribapay = $afribapay;
+    }
+
     /**
      * Handle the incoming webhook notification.
      *
@@ -39,7 +47,7 @@ class WebhookController extends Controller
             // Retrieve AfribaPAY signature from headers
             $afribaPaySignature = $request->header('HTTP_AFRIBAPAY_SIGN') ?? null;
             // Sign the payload using the merchant key
-            $computedSignature = $this->afribapay_sign($payload, config("services.afribapay.key"));
+            $computedSignature = $this->afribapay->afribapay_sign($payload, config("services.afribapay.key"));
             // Compare the signature received with the computed one
             if (!hash_equals($computedSignature, $afribaPaySignature)) {
                 // Signature mismatch, possibly indicating that the request did not originate from AfribaPAY
@@ -97,10 +105,5 @@ class WebhookController extends Controller
             ], 500);
         }
     }
-
-    // Afribapay signature verification function
-    public static function afribapay_sign($json, $api_key) {
-        $hash = hash_hmac('sha256', $json, $api_key);
-        return $hash;
-    }
+    
 }
